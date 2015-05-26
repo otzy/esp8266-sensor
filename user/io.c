@@ -24,9 +24,11 @@
 
 #define BTN_ADC 2
 
-//static ETSTimer resetBtntimer;
+static ETSTimer resetBtntimer;
 
 static ETSTimer adcBtnTimer;
+
+static ETSTimer t20secTimer;
 
 
 int gpio_pin_register[16] = {PERIPHS_IO_MUX_GPIO0_U,
@@ -55,27 +57,23 @@ void ICACHE_FLASH_ATTR ioLed(int ena) {
 	}
 }
 
-//static void ICACHE_FLASH_ATTR resetBtnTimerCb(void *arg) {
-//	static int resetCnt=0;
-//	if (!GPIO_INPUT_GET(BTNGPIO)) {
-//		resetCnt++;
-//	} else {
-//		if (resetCnt>=6) { //3 sec pressed
-//			wifi_station_disconnect();
-//			wifi_set_opmode(0x3); //reset to AP+STA mode
-//			os_printf("Reset to AP mode. Restarting system...\n");
-//			system_restart();
-//		} else if (resetCnt>=2) { //1 sec pressed
-//			//send data to cloud https://api.thingspeak.com/update?key=TS1TFG033WAB7K54&field1=XXXXX
-//			char payload[HTTP_MAX_GET_SIZE];
-//			os_sprintf(payload, "GET /update?key=TS1TFG033WAB7K54&field1=%d\r\n", system_get_time());
-//			os_printf("payload: %s\n", payload);
-//			os_printf("http get: %d \n",
-//					http_get("184.106.153.149", 80, payload));
-//		}
-//		resetCnt=0;
-//	}
-//}
+static void ICACHE_FLASH_ATTR resetBtnTimerCb(void *arg) {
+	static int resetCnt=0;
+	if (!GPIO_INPUT_GET(BTNGPIO)) {
+		resetCnt++;
+	} else {
+		if (resetCnt>=6) { //3 sec pressed
+			wifi_station_disconnect();
+			wifi_set_opmode(0x3); //reset to AP+STA mode
+			os_printf("Reset to AP mode. Restarting system...\n");
+			system_restart();
+		} else if (resetCnt>=2) { //1 sec pressed
+			//print rtc_time to comport
+			os_printf("rtc_time: %d", system_get_rtc_time() * system_rtc_clock_cali_proc());
+		}
+		resetCnt=0;
+	}
+}
 
 static void ICACHE_FLASH_ATTR adcBtnTimerCb(void *arg){
 	static int resetCnt=0;
@@ -90,27 +88,39 @@ static void ICACHE_FLASH_ATTR adcBtnTimerCb(void *arg){
 	}
 }
 
+
+static void ICACHE_FLASH_ATTR t20secTimerCb(void *arg) {
+	//send data to cloud https://api.thingspeak.com/update?key=TS1TFG033WAB7K54&field1=XXXXX
+	char payload[HTTP_MAX_GET_SIZE];
+	int cali = system_rtc_clock_cali_proc();
+	int rtc_time = system_get_rtc_time();
+	os_sprintf(payload, "GET /update?key=TS1TFG033WAB7K54&field1=%d&field2=%d&field3=%d\r\n", cali, rtc_time, rtc_time*cali);
+	os_printf("payload: %s\n", payload);
+	os_printf("http get: %d \n",
+	http_get("184.106.153.149", 80, payload));
+}
+
 void ioInit() {
 	
 	//Set GPIO5 to output mode for relay
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO5);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+	PIN_FUNC_SELECT(gpio_pin_register[LEDGPIO], FUNC_GPIO5);//PERIPHS_IO_MUX_MTCK_U
+	PIN_FUNC_SELECT(gpio_pin_register[BTNGPIO], FUNC_GPIO0);
 //	gpio_output_set(0, 0, (1<<LEDGPIO), (1<<BTNGPIO));
 	PIN_FUNC_SELECT(gpio_pin_register[BTN_ADC], FUNC_GPIO2);
-	gpio_output_set(0, 0, (1<<LEDGPIO), (1<<BTN_ADC));
-//
-//	//configure reset button timer
-//	os_timer_disarm(&resetBtntimer);
-//	os_timer_setfn(&resetBtntimer, resetBtnTimerCb, NULL);
-//	os_timer_arm(&resetBtntimer, 500, 1);
+	gpio_output_set(0, 0, (1<<LEDGPIO), (1<<BTN_ADC)|(1<<BTN_ADC));
 
-	//configure read ADC button
-//	PIN_FUNC_SELECT(gpio_pin_register[BTN_ADC], FUNC_GPIO15);
-//	PIN_PULLDWN_DIS(gpio_pin_register[BTN_ADC]);
-//	PIN_PULLUP_EN(gpio_pin_register[BTN_ADC]);
-//	GPIO_REG_WRITE(GPIO_ENABLE_W1TC_ADDRESS, 1<<BTN_ADC);
+	//configure reset button timer
+	os_timer_disarm(&resetBtntimer);
+	os_timer_setfn(&resetBtntimer, resetBtnTimerCb, NULL);
+	os_timer_arm(&resetBtntimer, 500, 1);
 
+	//adcBtnTimer
 	os_timer_disarm(&adcBtnTimer);
 	os_timer_setfn(&adcBtnTimer, adcBtnTimerCb, NULL);
 	os_timer_arm(&adcBtnTimer, 300, 1);
+
+	//20 sec timer
+	os_timer_disarm(&t20secTimer);
+	os_timer_setfn(&t20secTimer, t20secTimerCb, NULL);
+	os_timer_arm(&t20secTimer, 20*1000, 1);
 }
