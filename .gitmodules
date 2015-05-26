@@ -1,0 +1,9 @@
+[submodule "lib/heatshrink"]
+	path = lib/heatshrink
+	url = https://github.com/atomicobject/heatshrink.git
+[submodule "heatshrink"]
+	path = heatshrink
+	url = https://github.com/atomicobject/heatshrink.git
+[submodule "lib"]
+	path = lib
+	url = https://github.com/atomicobject/heatshrink.git
