@@ -42,9 +42,13 @@ HttpdBuiltInUrl builtInUrls[]={
 
 
 void user_init(void) {
+	os_printf("user_init start\n");
 	stdoutInit();
+	os_printf("stdoutInit done\n");
 	ioInit();
+	os_printf("ioInit done\n");
 //	DHTInit();
 	httpdInit(builtInUrls, 80);
+	os_printf("httpdInit done\n");
 	os_printf("\nReady\n");
 }

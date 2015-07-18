@@ -8,8 +8,15 @@
 #ifndef USER_LIGHT_PULSE_H_
 #define USER_LIGHT_PULSE_H_
 
-#define LP_TIMER_PERIOD 50 //how often we are sampling ADC
+#define LP_TIMER_PERIOD 10 //how often we are sampling ADC
 
 void lpInit();
+void ICACHE_FLASH_ATTR resetPulseCount();
+int getPulseCount();
+int getAdcMax();
+int getAdcMin();
+//void adc2SerialEnable();
+//void adc2SerialDisable();
+void toggleADC2SerialOutput();
 
 #endif /* USER_LIGHT_PULSE_H_ */

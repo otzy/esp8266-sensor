@@ -43,7 +43,7 @@ ScanResultData cgiWifiAps;
 void ICACHE_FLASH_ATTR wifiScanDoneCb(void *arg, STATUS status) {
 	int n;
 	struct bss_info *bss_link = (struct bss_info *)arg;
-	os_printf("wifiScanDoneCb %d\n", status);
+	os_printf("wifiScanDoneCb. Status=%d\n", status);
 	if (status!=OK) {
 		cgiWifiAps.scanInProgress=0;
 		wifi_station_disconnect(); //test HACK
@@ -94,7 +94,13 @@ static void ICACHE_FLASH_ATTR wifiStartScan() {
 		os_printf("STA status = %d. Disconnecting STA...\n", x);
 		wifi_station_disconnect();
 	}
-	wifi_station_scan(NULL, wifiScanDoneCb);
+
+
+	if (wifi_station_scan(NULL, wifiScanDoneCb)){
+		os_printf("WIFI Scan started successfully.\n");
+	}else{
+		os_printf("WIFI Scan start failed.\n");
+	}
 }
 
 //This CGI is called from the bit of AJAX-code in wifi.tpl. It will initiate a
