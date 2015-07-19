@@ -21,6 +21,7 @@ Some random cgi routines.
 #include "io.h"
 #include "dht22.h"
 #include "espmissingincludes.h"
+#include "config.h"
 
 //cause I can't be bothered to write an ioGetLed()
 static char currLedState=0;
@@ -64,6 +65,82 @@ void ICACHE_FLASH_ATTR tplLed(HttpdConnData *connData, char *token, void **arg) 
 }
 
 static long hitCounter=0;
+
+//helper function for configuration page check boxes
+void ICACHE_FLASH_ATTR ADCModeCheckboxSetState(char * buff, DeviceConfig *config, uint8 flag){
+	if ((config->ADCModeFlags & flag) > 0){
+		os_strcpy(buff, "checked");
+	}else{
+		os_strcpy(buff, "");
+	}
+}
+
+//Template code for configuration page
+void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **arg){
+	char buff[256];
+
+	if (token == NULL){
+		return;
+	}
+
+	DeviceConfig *config = getConfig();
+
+	if (os_strcmp(token, "ADCOn") == 0){
+		ADCModeCheckboxSetState(buff, config, CFG_ADC_ON);
+	}else if (os_strcmp(token, "ADCSerialOutputOn") == 0){
+		ADCModeCheckboxSetState(buff, config, CFG_ADC_SERIAL_OUT_ON);
+	}else if (os_strcmp(token, "ADCDecoderOutputOn") == 0){
+		ADCModeCheckboxSetState(buff, config, CFG_ADC_SERIAL_OUT_ON);
+	}else if (os_strcmp(token, "ADCSpinDetectionOn") == 0){
+		ADCModeCheckboxSetState(buff, config, CFG_ADC_SPIN_DETECTION_ON);
+	}
+
+	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
+}
+
+//Cgi that saves configuration
+int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
+	int len;
+	char buff[1024];
+
+	if (connData->conn==NULL) {
+		//Connection aborted. Clean up.
+		return HTTPD_CGI_DONE;
+	}
+
+
+	//first check whether it was post
+	len=httpdFindArg(connData->postBuff, "submit", buff, sizeof(buff));
+	if (len!=0) {
+		//new config submitted, need save to flash
+		DeviceConfig *config = getConfig();
+
+		//ADC check boxes. Set all to 0, then set those who came with submit.
+		config->ADCModeFlags = 0;
+		if (httpdFindArg(connData->postBuff, "ADCOn", buff, sizeof(buff))){
+			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_ON;
+		}
+		if (httpdFindArg(connData->postBuff, "ADCSerialOutputOn", buff, sizeof(buff))){
+			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_SERIAL_OUT_ON;
+		}
+		if (httpdFindArg(connData->postBuff, "ADCDecoderOutputOn", buff, sizeof(buff))){
+			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_DECODER_OUT_ON;
+		}
+		if (httpdFindArg(connData->postBuff, "ADCSpinDetectionOn", buff, sizeof(buff))){
+			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_SPIN_DETECTION_ON;
+		}
+
+		//TODO other settings
+
+		//TODO flash write error handling
+		writeConfig(config);
+
+
+	}
+
+	httpdRedirect(connData, "config.tpl");
+	return HTTPD_CGI_DONE;
+}
 
 //Template code for the counter on the index page.
 void ICACHE_FLASH_ATTR tplCounter(HttpdConnData *connData, char *token, void **arg) {

@@ -9,19 +9,6 @@
  *      Author: Evgeny Mazovetskiy
  */
 
-/**
- * How it works
- *
- * ADC has 10 bit resolution. This means we can have 1024 possible values.
- * As we need only 2 states - low and high, our goal is to find two clusters after a series of measurements.
- *
- * To reduce memory needs we also reduce accuracy, simply dividing ADC by 4, so we have now 256 possible values
- *
- * To store the frequency of each value we use int array. Every time after measurement
- * we increment appropriate element of array.
- *
- *
- */
 
 #include "ets_sys.h"
 #include "osapi.h"

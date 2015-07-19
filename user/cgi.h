@@ -8,5 +8,7 @@ void tplLed(HttpdConnData *connData, char *token, void **arg);
 void tplDHT(HttpdConnData *connData, char *token, void **arg);
 int cgiReadFlash(HttpdConnData *connData);
 void tplCounter(HttpdConnData *connData, char *token, void **arg);
+void tplConfig(HttpdConnData *connData, char *token, void **arg);
+int cgiConfig(HttpdConnData *connData);
 
 #endif

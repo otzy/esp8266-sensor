@@ -61,6 +61,7 @@ int gpio_pin_func[16] = {
 #define MOVING_AV_WINDOW 3
 
 #define LEDGPIO 2
+#define LED2GPIO 13
 #define BTNGPIO 0
 
 #define BTN_ADC_OUTPUT 14
@@ -75,7 +76,13 @@ static ETSTimer adcBtnTimer;
 
 static ETSTimer t120secTimer;
 
-
+void ICACHE_FLASH_ATTR led2OnOff(int state){
+	if (state){
+		gpio_output_set((1<<LED2GPIO), 0, (1<<LED2GPIO), 0);
+	}else{
+		gpio_output_set(0, (1<<LED2GPIO), (1<<LED2GPIO), 0);
+	}
+}
 
 void ICACHE_FLASH_ATTR ioLed(int ena) {
 	//gpio_output_set is overkill. ToDo: use better macros
@@ -179,12 +186,13 @@ void ioInit() {
 //	os_printf("wifi led status install done\n");
 
 	PIN_FUNC_SELECT(gpio_pin_register[LEDGPIO], gpio_pin_func[LEDGPIO]);
+	PIN_FUNC_SELECT(gpio_pin_register[LED2GPIO], gpio_pin_func[LED2GPIO]);
 	PIN_FUNC_SELECT(gpio_pin_register[BTNGPIO], gpio_pin_func[BTNGPIO]);
 	PIN_FUNC_SELECT(gpio_pin_register[BTN_ADC_OUTPUT], gpio_pin_func[BTN_ADC_OUTPUT]);
 
 	//set initial states of outputs and define inputs
 	//disabling for output (disable_mask parameter) means enabling this pin as input
-	gpio_output_set(0, 1<<LEDGPIO, (1<<LEDGPIO), (1<<BTNGPIO)|(1<<BTN_ADC_OUTPUT));
+	gpio_output_set(0, (1<<LEDGPIO)|(1<<LED2GPIO) , (1<<LEDGPIO)|(1<<LED2GPIO), (1<<BTNGPIO)|(1<<BTN_ADC_OUTPUT));
 	os_printf("GPIO setup done\n");
 
 

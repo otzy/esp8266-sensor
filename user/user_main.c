@@ -20,9 +20,17 @@
 #include "cgi.h"
 #include "cgiwifi.h"
 #include "stdout.h"
+#include "config.h"
 
 HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.tpl"},
+
+	//Config
+	{"/config", cgiRedirect, "/config.tpl"},
+	{"/config/", cgiRedirect, "/config.tpl"},
+	{"/config.tpl", cgiEspFsTemplate, tplConfig}, //show config form
+	{"/config.cgi", cgiConfig, NULL},//save config
+
 	{"/flash.bin", cgiReadFlash, NULL},
 	{"/led.tpl", cgiEspFsTemplate, tplLed},
 	{"/dht22.tpl", cgiEspFsTemplate, tplDHT},
@@ -46,9 +54,13 @@ void user_init(void) {
 	stdoutInit();
 	os_printf("stdoutInit done\n");
 	ioInit();
+	led2OnOff(0);
 	os_printf("ioInit done\n");
 //	DHTInit();
 	httpdInit(builtInUrls, 80);
 	os_printf("httpdInit done\n");
 	os_printf("\nReady\n");
+	DeviceConfig *config = getConfig();
+	os_printf("Config has been read. %d", config->ADCModeFlags);
+	led2OnOff(1);
 }
