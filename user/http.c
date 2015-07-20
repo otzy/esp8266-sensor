@@ -15,6 +15,7 @@
 #include "osapi.h"
 #include "mem.h"
 
+#define HTTP_DEBUG 0
 
 LOCAL struct espconn *pCon = NULL;
 
@@ -27,6 +28,7 @@ char payload[HTTP_MAX_GET_SIZE];
 
 int last_request_timestamp = 0;
 
+
 static void ICACHE_FLASH_ATTR http_send_payload_cb(void *arg){
 	  http_get_count++;
 
@@ -34,17 +36,17 @@ static void ICACHE_FLASH_ATTR http_send_payload_cb(void *arg){
 
 	  http_state = WAITING_RESPONSE;
 
-	  os_printf("http_send_payload_cb:\n");
-	  os_printf("\tpayload: %s\n", payload);
-	  os_printf("\tpayload length: %d\n", strlen(payload));
+	  if (HTTP_DEBUG) os_printf("http_send_payload_cb:\n");
+	  if (HTTP_DEBUG) os_printf("\tpayload: %s\n", payload);
+	  if (HTTP_DEBUG) os_printf("\tpayload length: %d\n", strlen(payload));
 
 	  espconn_sent(pespconn, (uint8*)payload, strlen(payload));
-	  os_printf("http_send_payload_cb: sent\n");
+	  if (HTTP_DEBUG) os_printf("http_send_payload_cb: sent\n");
 }
 
 //TODO call custom callback to process response
 static void http_receive_cb(void *arg, char *pdata, unsigned short len){
-	os_printf("\nResponse:\n%s\n", pdata);
+	if (HTTP_DEBUG) os_printf("\nResponse:\n%s\n", pdata);
 	http_state = STANDBY;
 }
 
@@ -52,7 +54,7 @@ int http_init(){
 	pCon = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	if (pCon == NULL)
 	{
-	        os_printf("pCon ALLOCATION FAIL\r\n");
+	        if (HTTP_DEBUG) os_printf("pCon ALLOCATION FAIL\r\n");
 	        return 0;
 	}
 
@@ -111,7 +113,7 @@ int http_get(char *ipaddr, int remote_port, char *relative_uri){
 //	save url to use it later in a callback
 	os_strcpy(payload, relative_uri);
 
-//	os_printf("\t\tuin8 url: %s", (char*)url);
+//	if (HTTP_DEBUG) os_printf("\t\tuin8 url: %s", (char*)url);
 
 	//Connect to remote server
 	int ret = 0;

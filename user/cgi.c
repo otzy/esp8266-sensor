@@ -90,9 +90,15 @@ void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **ar
 	}else if (os_strcmp(token, "ADCSerialOutputOn") == 0){
 		ADCModeCheckboxSetState(buff, config, CFG_ADC_SERIAL_OUT_ON);
 	}else if (os_strcmp(token, "ADCDecoderOutputOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_ADC_SERIAL_OUT_ON);
+		ADCModeCheckboxSetState(buff, config, CFG_ADC_DECODER_OUT_ON);
 	}else if (os_strcmp(token, "ADCSpinDetectionOn") == 0){
 		ADCModeCheckboxSetState(buff, config, CFG_ADC_SPIN_DETECTION_ON);
+	}else if (os_strcmp(token, "ADCChannelHost") == 0){
+		os_strcpy(buff, config->ADCChannelHost);
+	}else if (os_strcmp(token, "ADCChannelPayload") == 0){
+		os_strcpy(buff, config->ADCChannelPayload);
+	}else if (os_strcmp(token, "ADCChannelAPIKey") == 0){
+		os_strcpy(buff, config->ADCChannelAPIKey);
 	}
 
 	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
@@ -117,17 +123,26 @@ int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
 
 		//ADC check boxes. Set all to 0, then set those who came with submit.
 		config->ADCModeFlags = 0;
-		if (httpdFindArg(connData->postBuff, "ADCOn", buff, sizeof(buff))){
+		if (httpdFindArg(connData->postBuff, "ADCOn", buff, sizeof(buff)) >= 0){
 			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_ON;
 		}
-		if (httpdFindArg(connData->postBuff, "ADCSerialOutputOn", buff, sizeof(buff))){
+		if (httpdFindArg(connData->postBuff, "ADCSerialOutputOn", buff, sizeof(buff)) >= 0){
 			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_SERIAL_OUT_ON;
 		}
-		if (httpdFindArg(connData->postBuff, "ADCDecoderOutputOn", buff, sizeof(buff))){
+		if (httpdFindArg(connData->postBuff, "ADCDecoderOutputOn", buff, sizeof(buff)) >= 0){
 			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_DECODER_OUT_ON;
 		}
-		if (httpdFindArg(connData->postBuff, "ADCSpinDetectionOn", buff, sizeof(buff))){
+		if (httpdFindArg(connData->postBuff, "ADCSpinDetectionOn", buff, sizeof(buff)) >= 0){
 			config->ADCModeFlags = config->ADCModeFlags | CFG_ADC_SPIN_DETECTION_ON;
+		}
+		if (httpdFindArg(connData->postBuff, "ADCChannelHost", buff, sizeof(buff)) >= 0){
+			os_strcpy(config->ADCChannelHost, buff);
+		}
+		if (httpdFindArg(connData->postBuff, "ADCChannelPayload", buff, sizeof(buff)) >=0 ){
+			os_strcpy(config->ADCChannelPayload, buff);
+		}
+		if (httpdFindArg(connData->postBuff, "ADCChannelAPIKey", buff, sizeof(buff)) >=0 ){
+			os_strcpy(config->ADCChannelAPIKey, buff);
 		}
 
 		//TODO other settings

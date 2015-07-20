@@ -9,7 +9,6 @@
 <ul>
 <li>If you haven't connected this device to your WLAN network now, you can <a href="/wifi">do so.</a></li>
 <li>You can also control the <a href="led.tpl">LED</a>.</li>
-<li>..or view readings of <a href="dht22.tpl">DHT22</a> sensor.</li>
 <li>You can download the raw <a href="flash.bin">contents</a> of the SPI flash rom</li>
 </ul>
 </p>

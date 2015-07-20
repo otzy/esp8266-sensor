@@ -9,6 +9,7 @@
 
 #include "ets_sys.h"
 #include "stdout.h"
+#include "osapi.h"
 #include "spi_flash.h"
 #include "mem.h"
 #include "espmissingincludes.h"
@@ -21,19 +22,26 @@
 //how many 4K sectors we take for config.
 #define CONFIG_SECTORS 2
 
+#define CONFIG_DEBUG 1
+
 SpiFlashOpResult writeConfig(DeviceConfig *config){
 	SpiFlashOpResult result;
 
 	//first erase sectors
 	for (uint8 i=0; i<CONFIG_SECTORS; i++){
-		result = spi_flash_erase_sector(CONFIG_ADDRESS / 1000 + i);
+		result = spi_flash_erase_sector(CONFIG_ADDRESS / 0x1000 + i);
 		if (result != SPI_FLASH_RESULT_OK){
+			if (CONFIG_DEBUG) os_printf("config.c: Error erasing sector %d", CONFIG_ADDRESS / 1000 + i);
 			return result;
 		}
 	}
 
 	//write data
-	return spi_flash_write(CONFIG_ADDRESS, (uint32 *)config, sizeof(DeviceConfig));
+	result = spi_flash_write(CONFIG_ADDRESS, (uint32 *)config, sizeof(DeviceConfig));
+	if (result != SPI_FLASH_RESULT_OK){
+		if (CONFIG_DEBUG) os_printf("config.c: Error writing to flash");
+	}
+	return result;
 }
 
 /**
@@ -71,7 +79,7 @@ DeviceConfig* getConfig(){
 
 	if (result->isInitializedFlag != 0xAA){
 		//TODO sort out fatal error
-		//flash_read_result = saveDefaults(result);
+		flash_read_result = saveDefaults(result);
 	}
 
 	if (flash_read_result == SPI_FLASH_RESULT_OK){

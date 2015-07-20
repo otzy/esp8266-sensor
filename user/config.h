@@ -29,6 +29,7 @@ typedef struct {
 	//parts of the URL of the service where we send info about ADC life (thingspeak.com or so)
 	char ADCChannelPayload[256]; //path with query string. Can have %s and %d for sprintf
 	char ADCChannelHost[64]; //domain or ip address of a service
+	char ADCChannelAPIKey[33]; //API key on thingspeak.com
 
 	//how often we send raw ADC data to channel when spin detection is disabled
 	//Interval in seconds

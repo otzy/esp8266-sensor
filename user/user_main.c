@@ -48,19 +48,31 @@ HttpdBuiltInUrl builtInUrls[]={
 	{NULL, NULL, NULL}
 };
 
+static ETSTimer initTimer;
+
+static void ICACHE_FLASH_ATTR initCb(void *arg) {
+	os_printf("user_init start\n");
+		stdoutInit();
+		os_printf("stdoutInit done\n");
+		ioInit();
+		led2OnOff(0);
+		os_printf("ioInit done\n");
+	//	DHTInit();
+
+		httpdInit(builtInUrls, 80);
+		os_printf("httpdInit done\n");
+
+		DeviceConfig *config = getConfig();
+		os_printf("Config has been read. %d", config->ADCModeFlags);
+
+		os_printf("\nReady\n");
+		led2OnOff(1);
+}
+
 
 void user_init(void) {
-	os_printf("user_init start\n");
-	stdoutInit();
-	os_printf("stdoutInit done\n");
-	ioInit();
-	led2OnOff(0);
-	os_printf("ioInit done\n");
-//	DHTInit();
-	httpdInit(builtInUrls, 80);
-	os_printf("httpdInit done\n");
-	os_printf("\nReady\n");
-	DeviceConfig *config = getConfig();
-	os_printf("Config has been read. %d", config->ADCModeFlags);
-	led2OnOff(1);
+	//do real init in timer callback cause writing to flash leads to fatal error when called from user_init()
+	os_timer_disarm(&initTimer);
+	os_timer_setfn(&initTimer, initCb, NULL);
+	os_timer_arm(&initTimer, 100, 0);
 }
