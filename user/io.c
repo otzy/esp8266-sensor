@@ -21,7 +21,7 @@
 #include "light_pulse.h"
 
 
-int gpio_pin_register[16] = {
+int gpio_pin_register[GPIO_PIN_COUNT] = {
 		PERIPHS_IO_MUX_GPIO0_U,
 		PERIPHS_IO_MUX_U0TXD_U,
 		PERIPHS_IO_MUX_GPIO2_U,
@@ -39,7 +39,7 @@ int gpio_pin_register[16] = {
 		PERIPHS_IO_MUX_MTMS_U,
 		PERIPHS_IO_MUX_MTDO_U};
 
-int gpio_pin_func[16] = {
+int gpio_pin_func[GPIO_PIN_COUNT] = {
 		FUNC_GPIO0,
 		FUNC_GPIO1,
 		FUNC_GPIO2,

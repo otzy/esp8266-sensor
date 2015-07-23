@@ -99,6 +99,12 @@ void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **ar
 		os_strcpy(buff, config->ADCChannelPayload);
 	}else if (os_strcmp(token, "ADCChannelAPIKey") == 0){
 		os_strcpy(buff, config->ADCChannelAPIKey);
+	}else if (os_strcmp(token, "DecoderOutputBit0") == 0){
+		os_sprintf(buff, "%d", config->DecoderOutputBit0);
+	}else if (os_strcmp(token, "DecoderOutputBit1") == 0){
+		os_sprintf(buff, "%d", config->DecoderOutputBit1);
+	}else if (os_strcmp(token, "DecoderOutputBit2") == 0){
+		os_sprintf(buff, "%d", config->DecoderOutputBit2);
 	}
 
 	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
@@ -143,6 +149,15 @@ int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
 		}
 		if (httpdFindArg(connData->postBuff, "ADCChannelAPIKey", buff, sizeof(buff)) >=0 ){
 			os_strcpy(config->ADCChannelAPIKey, buff);
+		}
+		if (httpdFindArg(connData->postBuff, "bit0", buff, sizeof(buff)) >=0 ){
+			config->DecoderOutputBit0 = atoi(buff);
+		}
+		if (httpdFindArg(connData->postBuff, "bit1", buff, sizeof(buff)) >=0 ){
+			config->DecoderOutputBit1 = atoi(buff);
+		}
+		if (httpdFindArg(connData->postBuff, "bit2", buff, sizeof(buff)) >=0 ){
+			config->DecoderOutputBit2 = atoi(buff);
 		}
 
 		//TODO other settings

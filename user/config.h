@@ -44,7 +44,11 @@ typedef struct {
 	uint8 DecoderOutputBit1; //GPIO number for bit1 of decoder input
 	uint8 DecoderOutputBit2; //GPIO number for bit2 of decoder input
 
-	//TODO ThingSpeak TalkBack
+	//ThingSpeak TalkBack
+	char TalkBackHost[64];
+	char TalkBackPayload[256];
+	char TalkBackID[16];
+	char TallBackApiKey[32];
 
 	uint8 isInitializedFlag; //must contain magic value 0xAA
 
