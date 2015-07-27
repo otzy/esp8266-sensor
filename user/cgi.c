@@ -22,6 +22,7 @@ Some random cgi routines.
 #include "dht22.h"
 #include "espmissingincludes.h"
 #include "config.h"
+#include "user_main.h"
 
 //cause I can't be bothered to write an ioGetLed()
 static char currLedState=0;
@@ -85,6 +86,18 @@ void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **ar
 
 	DeviceConfig *config = getConfig();
 
+	//TODO wrap to function
+	//something is wrong here
+	if (httpdFindArg(connData->getArgs, "password", buff, sizeof(buff)) >= 0){
+		if (os_strcmp(buff, config->password) != 0){
+			httpdRedirectWithDelay(connData, "pass_error.html");
+			return;
+		}
+	}else{
+		httpdRedirectWithDelay(connData, "pass_error.html");
+		return;
+	}
+
 	if (os_strcmp(token, "ADCOn") == 0){
 		ADCModeCheckboxSetState(buff, config, CFG_ADC_ON);
 	}else if (os_strcmp(token, "ADCSerialOutputOn") == 0){
@@ -106,6 +119,20 @@ void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **ar
 	}else if (os_strcmp(token, "DecoderOutputBit2") == 0){
 		os_sprintf(buff, "%d", config->DecoderOutputBit2);
 	}
+	//TalkBack TalkBackOn
+	else if (os_strcmp(token, "TalkBackOn") == 0){
+		ADCModeCheckboxSetState(buff, config, CFG_TALKBACK_ON);
+	}else if (os_strcmp(token, "TalkBackHost") == 0){
+		os_strcpy(buff, config->TalkBackHost);
+	}else if (os_strcmp(token, "TalkBackPayload") == 0){
+		os_strcpy(buff, config->TalkBackPayload);
+	}else if (os_strcmp(token, "TalkBackId") == 0){
+		os_strcpy(buff, config->TalkBackID);
+	}else if (os_strcmp(token, "TalkBackApiKey") == 0){
+		os_strcpy(buff, config->TalkBackApiKey);
+	}else if (os_strcmp(token, "password") == 0){
+		os_strcpy(buff, config->password);
+	}
 
 	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
 }
@@ -120,12 +147,25 @@ int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
 		return HTTPD_CGI_DONE;
 	}
 
+	DeviceConfig *config = getConfig();
+
+	//TODO wrap to function
+	//something is wrong here
+	if (httpdFindArg(connData->postBuff, "password", buff, sizeof(buff)) >= 0){
+		if (os_strcmp(buff, config->password) != 0){
+			httpdRedirectWithDelay(connData, "pass_error.html");
+			return HTTPD_CGI_MORE;
+		}
+	}else{
+		httpdRedirectWithDelay(connData, "pass_error.html");
+		return HTTPD_CGI_MORE;
+	}
 
 	//first check whether it was post
 	len=httpdFindArg(connData->postBuff, "submit", buff, sizeof(buff));
 	if (len!=0) {
+
 		//new config submitted, need save to flash
-		DeviceConfig *config = getConfig();
 
 		//ADC check boxes. Set all to 0, then set those who came with submit.
 		config->ADCModeFlags = 0;
@@ -160,15 +200,57 @@ int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
 			config->DecoderOutputBit2 = atoi(buff);
 		}
 
-		//TODO other settings
+		if (httpdFindArg(connData->postBuff, "newpassword", buff, sizeof(buff)) >=0 ){
+			os_strcpy(config->password, buff);
+			config->password[15] = 0xAA;
+		}
 
-		//TODO flash write error handling
-		writeConfig(config);
+		/*** TalkBack stuff ***/
+		uint8 talkback_param_count = 0;
+		if (httpdFindArg(connData->postBuff, "TalkBackHost", buff, sizeof(buff)) >= 0){
+			os_strcpy(config->TalkBackHost, buff);
+			if (os_strlen(buff)>0){
+				talkback_param_count++;
+			}
+		}
+		if (httpdFindArg(connData->postBuff, "TalkBackPayload", buff, sizeof(buff)) >= 0){
+			os_strcpy(config->TalkBackPayload, buff);
+			if (os_strlen(buff)>0){
+				talkback_param_count++;
+			}
+		}
+		if (httpdFindArg(connData->postBuff, "TalkBackId", buff, sizeof(buff)) >= 0){
+			os_strcpy(config->TalkBackID, buff);
+			if (os_strlen(buff)>0){
+				talkback_param_count++;
+			}
+		}
+		if (httpdFindArg(connData->postBuff, "TalkBackApiKey", buff, sizeof(buff)) >= 0){
+			os_strcpy(config->TalkBackApiKey, buff);
+			if (os_strlen(buff)>0){
+				talkback_param_count++;
+			}
+		}
+
+		if ((talkback_param_count==4) && (httpdFindArg(connData->postBuff, "TalkBackOn", buff, sizeof(buff)) >= 0)){
+			config->ADCModeFlags = config->ADCModeFlags | CFG_TALKBACK_ON;
+		}
+		/*** END of TalkBack stuff ***/
 
 
+
+		if (httpdFindArg(connData->postBuff, "write", buff, sizeof(buff)) >=0 ){
+			//TODO flash write error handling
+			writeConfig(config);
+		}
+
+		//system_restart();
+		initCb(config); //config parameter here is just because the function require parameter. It's not used actually in it
 	}
 
-	httpdRedirect(connData, "config.tpl");
+	char url[127];
+	os_sprintf(url, "config.tpl?password=%s", config->password);
+	httpdRedirect(connData, url);
 	return HTTPD_CGI_DONE;
 }
 

@@ -57,8 +57,18 @@ SpiFlashOpResult saveDefaults(DeviceConfig *config){
 	config->DecoderOutputBit1 = 0x00;
 	config->DecoderOutputBit2 = 0x00;
 	config->RawADCChannelOutputInterval = 0x00;
-	config->isInitializedFlag = 0xAA;
 
+	config->TalkBackApiKey[0] = 0x00;
+	config->TalkBackHost[0] = 0x00;
+	config->TalkBackID[0] = 0x00;
+	config->TalkBackPayload[0] = 0x00;
+
+	if (config->password[15] != 0xAA){
+		config->password[0] = 0x00;
+		config->password[15] = 0xAA;
+	}
+
+	config->isInitializedFlag = 0xAA;
 	return writeConfig(config);
 }
 
@@ -68,6 +78,8 @@ DeviceConfig* getConfig(){
 	if (result == NULL){
 		result = (DeviceConfig *)os_malloc(sizeof(DeviceConfig));
 		result->isInitializedFlag = 0x00;
+		os_strcpy(result->password, "12345");
+		result->password[15] = 0xAA;
 	}
 
 	//if it was read previously we don't read it again
@@ -78,7 +90,6 @@ DeviceConfig* getConfig(){
 	SpiFlashOpResult flash_read_result = spi_flash_read(CONFIG_ADDRESS, (uint32 *)result, sizeof(DeviceConfig));
 
 	if (result->isInitializedFlag != 0xAA){
-		//TODO sort out fatal error
 		flash_read_result = saveDefaults(result);
 	}
 

@@ -10,6 +10,7 @@
 
 #define HTTP_TIMEOUT 15 //seconds
 #define HTTP_MAX_GET_SIZE 256
+#define HTTP_MAX_HOST_SIZE 128
 
 typedef enum {NOT_INITIALIZED, STANDBY, WAITING_CONNECTON, WAITING_RESPONSE} http_state_enum;
 int http_get(char *ipaddr, int remote_port, char *relative_uri);

@@ -31,6 +31,33 @@
 
 #define HTTPD_DEBUG 0
 
+/*** Delayed response stuff ***/
+static ETSTimer delayTimer; //timer for delayed response on the invalid password
+static uint8 timer_armed = 0;
+static char delayedUrl[256];
+static HttpdConnData *delayedConn;
+
+static void ICACHE_FLASH_ATTR delayTimerCb(void *arg) {
+	httpdRedirect(delayedConn, delayedUrl);
+	timer_armed = 0;
+}
+
+void httpdRedirectWithDelay(HttpdConnData *conn, char *newUrl){
+	if (timer_armed){
+		//we can not arm timer until it finished
+		return;
+	}
+
+	timer_armed = 1;
+	os_timer_disarm(&delayTimer);
+	os_strcpy(delayedUrl, newUrl);
+	delayedConn = conn;
+	os_timer_setfn(&delayTimer, delayTimerCb, NULL);
+	os_timer_arm(&delayTimer, 5000, 0);
+
+}
+/********************************/
+
 //This gets set at init time.
 static HttpdBuiltInUrl *builtInUrls;
 

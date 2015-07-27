@@ -20,6 +20,9 @@
 //if flag is set, activate spin detection feature and send data to cloud
 #define CFG_ADC_SPIN_DETECTION_ON 16
 
+//activate TalkBack functionality
+#define CFG_TALKBACK_ON 8
+
 //A structure describing our configuration data
 //Currently the size can not be bigger than 8k.
 //If you need more, find not taken location on flash
@@ -35,7 +38,7 @@ typedef struct {
 	//Interval in seconds
 	uint16 RawADCChannelOutputInterval;
 
-	uint8 ADCModeFlags; //CFG_ADC_* flags
+	uint8 ADCModeFlags; //CFG_ADC_* flags and TalkBack on flag
 
 	//Decoder is a separate device, built on 74HTC138N or similar chip
 	//with 8 led, which can be connected to device to roughly display ADC value.
@@ -48,7 +51,9 @@ typedef struct {
 	char TalkBackHost[64];
 	char TalkBackPayload[256];
 	char TalkBackID[16];
-	char TallBackApiKey[32];
+	char TalkBackApiKey[32];
+
+	char password[16]; //user can enter up to 14 chars password. The last char is used as the flag, that password is set up.
 
 	uint8 isInitializedFlag; //must contain magic value 0xAA
 

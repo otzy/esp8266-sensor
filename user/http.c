@@ -7,6 +7,10 @@
  *  Thanks to http://myesp8266.blogspot.de/2015/03/publish-data-from-your-esp8266-to.html
  */
 
+//TODO send to domain name, not only IP address
+//TODO send headers
+//TODO call custom callback to process response
+
 #include "http.h"
 #include "espmissingincludes.h"
 #include "c_types.h"
@@ -15,7 +19,7 @@
 #include "osapi.h"
 #include "mem.h"
 
-#define HTTP_DEBUG 0
+#define HTTP_DEBUG 1
 
 LOCAL struct espconn *pCon = NULL;
 
@@ -25,6 +29,7 @@ int http_get_attempts = 0;
 int http_get_count = 0;
 
 char payload[HTTP_MAX_GET_SIZE];
+char host[HTTP_MAX_HOST_SIZE];
 
 int last_request_timestamp = 0;
 
@@ -84,6 +89,7 @@ http_state_enum http_get_state(){
 int http_get(char *ipaddr, int remote_port, char *relative_uri){
 	http_get_attempts++;
 
+	if (HTTP_DEBUG) os_printf("http_get(%s, %d, %s)", ipaddr, remote_port, relative_uri);
 
 	if (http_state == NOT_INITIALIZED ){
 		http_init();
@@ -102,7 +108,7 @@ int http_get(char *ipaddr, int remote_port, char *relative_uri){
 	pCon->proto.tcp->remote_port = remote_port;
 
 	//set up the remote IP
-	uint32_t ip = ipaddr_addr(ipaddr); //IP address for thingspeak.com
+	uint32_t ip = ipaddr_addr(ipaddr);
 	os_memcpy(pCon->proto.tcp->remote_ip, &ip, 4);
 
 	//set up the local IP

@@ -9,7 +9,7 @@
  *      Author: Evgeny Mazovetskiy
  */
 
-
+#include <stdarg.h>
 #include "ets_sys.h"
 #include "osapi.h"
 #include "espmissingincludes.h"
@@ -21,6 +21,9 @@
 
 #include "http.h"
 #include "light_pulse.h"
+#include "config.h"
+#include "io.h"
+#include "user_main.h"
 
 static ETSTimer lpTimer;
 
@@ -43,6 +46,8 @@ uint8 tolerance = 0;
 
 uint8 one_loop_max = 0;
 uint8 one_loop_min = 255;
+
+static uint8 spin_detection_enabled = 0;
 
 #define STATE_INITIAL 0
 #define STATE_LOW 2
@@ -77,7 +82,12 @@ void updateTolerance(){
 static void ICACHE_FLASH_ATTR lpTimerCb(void *arg) {
 
 
-	int adc = system_adc_read()>>2; //divide by 4
+	int adc = thing_adc_read()>>2; //divide by 4
+
+	if (!spin_detection_enabled){
+		return;
+	}
+
 	if (adc == 256){ //ignore 256, does not really matter for us. 255 is OK too
 		adc--;
 	}
@@ -150,13 +160,86 @@ static void ICACHE_FLASH_ATTR lpTimerCb(void *arg) {
 
 }
 
-void lpInit(){
-//	for (int i=0; i<256; i++){
-//		samples[i] = 0;
-//	}
 
-	//setup timer
+/*** Send to web stuff ***/
+
+//https://api.thingspeak.com/update?key=XXXXXXX&field1=0
+
+static ETSTimer t120secTimer;
+static char *channel_ip;
+static char *channel_payload_relative_uri;
+static char *adc_channel_api_key;
+
+
+
+static void ICACHE_FLASH_ATTR t120secTimerCb(void *arg) {
+	//send data to cloud https://api.thingspeak.com/update?key=IBN5KS0BZJH87MM9&field1=0
+	char payload[HTTP_MAX_GET_SIZE];
+	uint16 pulse_count = getPulseCount();
+	resetPulseCount();
+
+	//add GET in front of uri, and field2, field3 place holders for min and max values
+	//so that we will have format string like this: "GET /update?key=%s&field1=%d&field2=%d&field3=%d\r\n"
+	char format_str[HTTP_MAX_GET_SIZE];
+	os_sprintf(format_str, "GET %s%s", channel_payload_relative_uri, "&field2=%d&field3=%d\r\n");
+os_printf("format_str=%s\n", format_str);
+	thing_vsprintf(payload, HTTP_MAX_GET_SIZE-1, format_str, adc_channel_api_key, pulse_count, getAdcMin(), getAdcMax());
+os_printf("payload=%s\n", payload);
+	//TODO configuration parameter for port
+	http_get(channel_ip, 80, payload);
+}
+/*************************/
+
+
+
+void lpInit(DeviceConfig *config){
+	adc_min = 255;
+	adc_max = 0;
+	tolerance = 0;
+	one_loop_max = 0;
+	one_loop_min = 255;
+	state = STATE_INITIAL;
+
+	//All timers must be disarmed in the beginning. Because we can apply configuration changes without resetting the thing
+	os_timer_disarm(&t120secTimer);
 	os_timer_disarm(&lpTimer);
-	os_timer_setfn(&lpTimer, lpTimerCb, NULL);
-	os_timer_arm(&lpTimer, LP_TIMER_PERIOD, 1);
+
+	//functionality enabled if both ADC and spinning detection are enabled in config and channel url is defined
+
+	if ((config->ADCModeFlags & CFG_ADC_ON)){
+
+		//Enable spin detection only if channel data presented
+		if ((os_strcmp(config->ADCChannelHost, "")!=0)
+				&& (os_strcmp(config->ADCChannelPayload, "")!=0)
+				&& (os_strcmp(config->ADCChannelAPIKey, "")!=0)){
+
+			channel_ip =  config->ADCChannelHost;
+			channel_payload_relative_uri = config->ADCChannelPayload;
+			adc_channel_api_key = config->ADCChannelAPIKey;
+
+			if (config->ADCModeFlags & CFG_ADC_SPIN_DETECTION_ON){
+				spin_detection_enabled = 1;
+
+				//120 sec timer
+				os_timer_setfn(&t120secTimer, t120secTimerCb, NULL);
+				os_timer_arm(&t120secTimer, 120*1000, 1);
+			}else{
+				spin_detection_enabled = 0;
+			}
+		}
+
+		if (config->ADCModeFlags & CFG_ADC_SERIAL_OUT_ON){
+			adc2serial_output_enabled = 1;
+		}else{
+			adc2serial_output_enabled = 0;
+		}
+
+		//setup timer
+
+		if (adc2serial_output_enabled || spin_detection_enabled || (config->ADCModeFlags & CFG_ADC_DECODER_OUT_ON)){
+			os_timer_setfn(&lpTimer, lpTimerCb, NULL);
+			os_timer_arm(&lpTimer, LP_TIMER_PERIOD, 20);
+		}
+
+	}
 }

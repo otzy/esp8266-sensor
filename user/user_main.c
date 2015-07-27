@@ -22,6 +22,16 @@
 #include "stdout.h"
 #include "config.h"
 
+
+int thing_vsprintf(char *buff, uint16 buff_size, const char *format, ...){
+	int result;
+	va_list args;
+	va_start(args, format);
+	result = ets_vsnprintf(buff, buff_size-1, format, args);
+	va_end(args);
+	return result;
+}
+
 HttpdBuiltInUrl builtInUrls[]={
 	{"/", cgiRedirect, "/index.tpl"},
 
@@ -48,29 +58,44 @@ HttpdBuiltInUrl builtInUrls[]={
 	{NULL, NULL, NULL}
 };
 
+static ETSTimer t1secTimer;
+static uint64 time = 0;
+static void t1secTimerCb(void *arg) {
+	time++;
+}
+
+uint64 getThingTime(){
+	return time;
+}
+
 static ETSTimer initTimer;
 
-static void ICACHE_FLASH_ATTR initCb(void *arg) {
+void ICACHE_FLASH_ATTR initCb(void *arg) {
 	os_printf("user_init start\n");
-		stdoutInit();
-		os_printf("stdoutInit done\n");
-		ioInit();
-		led2OnOff(0);
-		os_printf("ioInit done\n");
-	//	DHTInit();
+	DeviceConfig *config = getConfig();
+	os_printf("Config has been read. %d", config->ADCModeFlags);
 
-		httpdInit(builtInUrls, 80);
-		os_printf("httpdInit done\n");
+	ioInit(config);
+	led2OnOff(0);
+	os_printf("ioInit done\n");
 
-		DeviceConfig *config = getConfig();
-		os_printf("Config has been read. %d", config->ADCModeFlags);
-
-		os_printf("\nReady\n");
-		led2OnOff(1);
+	os_printf("\nReady\n");
+	led2OnOff(1);
 }
 
 
 void user_init(void) {
+	stdoutInit();
+	os_printf("stdoutInit done\n");
+
+	//1 sec timer
+	os_timer_disarm(&t1secTimer);
+	os_timer_setfn(&t1secTimer, t1secTimerCb, NULL);
+	os_timer_arm(&t1secTimer, 1000, 1);
+
+	httpdInit(builtInUrls, 80);
+	os_printf("httpdInit done\n");
+
 	//do real init in timer callback cause writing to flash leads to fatal error when called from user_init()
 	os_timer_disarm(&initTimer);
 	os_timer_setfn(&initTimer, initCb, NULL);

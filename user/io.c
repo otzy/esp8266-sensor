@@ -19,6 +19,8 @@
 
 #include "http.h"
 #include "light_pulse.h"
+#include "io.h"
+#include "user_main.h"
 
 
 int gpio_pin_register[GPIO_PIN_COUNT] = {
@@ -64,6 +66,20 @@ int gpio_pin_func[GPIO_PIN_COUNT] = {
 #define LED2GPIO 13
 #define BTNGPIO 0
 
+#define INPUT 0
+#define OUTPUT 1
+
+void gpioMode(uint8 gpio_pin, uint8 mode){
+	PIN_FUNC_SELECT(gpio_pin_register[gpio_pin], gpio_pin_func[gpio_pin]);
+
+	if (mode == INPUT){
+		gpio_output_set(0, 0, 0, 1<<gpio_pin);
+	}else{
+		//enable pin as output and set in to 0
+		gpio_output_set(0, 1<<gpio_pin, 1<<gpio_pin, 0);
+	}
+}
+
 #define BTN_ADC_OUTPUT 14
 
 static ETSTimer resetBtntimer;
@@ -74,7 +90,22 @@ static ETSTimer adcBtnTimer;
 
 //static ETSTimer adcToSerialTimer;
 
-static ETSTimer t120secTimer;
+void decoderSet(uint8 value);
+
+static uint16 custom_adc_read(void){
+	uint16 result = system_adc_read();
+
+	//do output to decoder
+	//we need only 3 most significant bits
+	//ESP8266 ADC max value is 1024, which give us 11th bit on max value. We ignore this case
+	if (result == 1024){
+		decoderSet(7);
+	}else{
+		decoderSet(result>>7);
+	}
+
+	return result;
+}
 
 void ICACHE_FLASH_ATTR led2OnOff(int state){
 	if (state){
@@ -127,58 +158,47 @@ static void ICACHE_FLASH_ATTR adcBtnTimerCb(void *arg){
 	}
 }
 
-//static uint16 mov_av[MOVING_AV_WINDOW];
-//uint8 average_cursor = 0;
-//uint16 last_result;
-//
-//static void ICACHE_FLASH_ATTR adcToSerialTimerCb(void *arg){
-//	if (average_cursor == MOVING_AV_WINDOW){
-//		average_cursor = 0;
-//	}
-//	mov_av[average_cursor] = system_adc_read();
-//	average_cursor++;
-//
-//	last_result = 0;
-//	for (int i=0; i<MOVING_AV_WINDOW; i++){
-//		last_result += mov_av[i];
-//	}
-//	last_result = last_result / 3;
-//
-//	os_printf("%d\n", last_result);
-//}
 
 
 
-//static void ICACHE_FLASH_ATTR t20secTimerCb(void *arg) {
-//	//send data to cloud https://api.thingspeak.com/update?key=TS1TFG033WAB7K54&field1=XXXXX
-//	char payload[HTTP_MAX_GET_SIZE];
-//	int cali = system_rtc_clock_cali_proc();
-//	int rtc_time = system_get_rtc_time();
-//	os_sprintf(payload, "GET /update?key=TS1TFG033WAB7K54&field1=%d&field2=%d&field3=%d\r\n", cali, rtc_time, rtc_time*cali);
-//	os_printf("payload: %s\n", payload);
-//	os_printf("http get: %d \n",
-//	http_get("184.106.153.149", 80, payload));
-//}
+/********* DECODER ***************/
+//TODO to separate file
+// 8 LED bar display that shows
+// the value of 3 bits output
+// from selected GPIOs
 
-//Electric Counter Sensor:
-//https://api.thingspeak.com/update?key=IBN5KS0BZJH87MM9&field1=0
+static uint8 bit0, bit1, bit2;
+static uint16 decoderBitMask;
+void decoderInit(uint8 cfg_bit0, uint8 cfg_bit1, uint8 cfg_bit2 ){
+	bit0 = cfg_bit0;
+	bit1 = cfg_bit1;
+	bit2 = cfg_bit2;
 
-static void ICACHE_FLASH_ATTR t120secTimerCb(void *arg) {
-	//send data to cloud https://api.thingspeak.com/update?key=IBN5KS0BZJH87MM9&field1=0
-	char payload[HTTP_MAX_GET_SIZE];
-	uint16 pulse_count = getPulseCount();
-	resetPulseCount();
-	os_sprintf(payload, "GET /update?key=IBN5KS0BZJH87MM9&field1=%d&field2=%d&field3=%d\r\n", pulse_count, getAdcMin(), getAdcMax());
-	//http_get("184.106.153.149", 80, payload);
+	gpioMode(bit0, OUTPUT);
+	gpioMode(bit1, OUTPUT);
+	gpioMode(bit2, OUTPUT);
+
+	decoderBitMask = (1<<bit0)|(1<<bit2)|(1<<bit2);
 }
+void decoderSet(uint8 value){
+	uint16 set_mask = ((value & BIT0)<<bit0) | (((value & BIT1)>>1)<<bit1) | (((value & BIT2)>>2)<<bit2);;
+	gpio_output_set(set_mask, (~set_mask) & decoderBitMask, decoderBitMask, 0);
+}
+/*** END OF DECODER FUNCTIONS ***/
 
-
-void ioInit() {
+void ioInit(DeviceConfig *config) {
 	os_printf("ioInit start\n");
+
+	decoderInit(config->DecoderOutputBit0, config->DecoderOutputBit1, config->DecoderOutputBit2);
 	
-//	for (int i=0; i<3; i++){
-//		mov_av[i] = 0;
-//	}
+	//define custom adc_read function.
+	//if we don't need to do anything special, use system_adc_read from SDK.
+	if (config->ADCModeFlags & (CFG_ADC_ON | CFG_ADC_DECODER_OUT_ON)){
+		decoderSet(0);
+		thing_adc_read = custom_adc_read;
+	}else{
+		thing_adc_read = system_adc_read;
+	}
 
 	//SUCKS, throws fatal error
 	//WIFI status LED setup
@@ -222,10 +242,6 @@ void ioInit() {
 //	os_timer_setfn(&t20secTimer, t20secTimerCb, NULL);
 //	os_timer_arm(&t20secTimer, 20*1000, 1);
 
-	lpInit();
+	lpInit(config);
 
-	//120 sec timer
-	os_timer_disarm(&t120secTimer);
-	os_timer_setfn(&t120secTimer, t120secTimerCb, NULL);
-	os_timer_arm(&t120secTimer, 120*1000, 1);
 }

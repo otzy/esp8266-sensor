@@ -2,6 +2,8 @@
 #define ESPMISSINGINCLUIDES_H
 
 #include <ets_sys.h>
+#include <stdarg.h>
+
 
 //Missing function prototypes in include folders. Gcc will warn on these if we don't define 'em anywhere.
 //MOST OF THESE ARE GUESSED! but they seem to swork and shut up the compiler.
@@ -29,6 +31,9 @@ void ets_timer_setfn(ETSTimer *t, ETSTimerFunc *fn, void *parg);
 //int os_printf(const char *format, ...)  __attribute__ ((format (printf, 1, 2)));
 int ets_printf(const char *format, ...)  __attribute__ ((format (printf, 1, 2)));
 int os_snprintf(char *str, size_t size, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
+int ets_vsprintf(char *str, const char *format, va_list argptr);
+int ets_vsnprintf(char *buffer, size_t sizeOfBuffer,  const char *format, va_list argptr);
+
 void pvPortFree(void *ptr);
 void *pvPortMalloc(size_t xWantedSize);
 void *pvPortZalloc(size_t);

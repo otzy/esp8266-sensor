@@ -8,9 +8,12 @@
 #ifndef USER_LIGHT_PULSE_H_
 #define USER_LIGHT_PULSE_H_
 
+#include "config.h"
+
 #define LP_TIMER_PERIOD 10 //how often we are sampling ADC
 
-void lpInit();
+
+void lpInit(DeviceConfig *config);
 void ICACHE_FLASH_ATTR resetPulseCount();
 int getPulseCount();
 int getAdcMax();
