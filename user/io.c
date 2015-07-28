@@ -124,6 +124,17 @@ void ICACHE_FLASH_ATTR ioLed(int ena) {
 	}
 }
 
+static void ICACHE_FLASH_ATTR ledSingleFlashTimerCb(void *arg) {
+	gpio_output_set(0, (1<<LEDGPIO), (1<<LEDGPIO), 0);
+}
+
+void ICACHE_FLASH_ATTR ledSingleFlash(uint16 millis){
+	gpio_output_set((1<<LEDGPIO), 0, (1<<LEDGPIO), 0);
+	os_timer_disarm(getOnceTimer());
+	os_timer_setfn(getOnceTimer(), ledSingleFlashTimerCb, NULL);
+	os_timer_arm(getOnceTimer(), millis, 0);
+}
+
 static void ICACHE_FLASH_ATTR resetBtnTimerCb(void *arg) {
 	static int resetCnt=0;
 	if (!GPIO_INPUT_GET(BTNGPIO)) {

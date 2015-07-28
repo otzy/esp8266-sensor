@@ -135,6 +135,9 @@ static void ICACHE_FLASH_ATTR lpTimerCb(void *arg) {
 			//actually just increment counter
 			pulse_count++;
 
+			//indicate on a board by the short led light
+			ledSingleFlash(300);
+
 			//correct min if necessary
 			if (one_loop_min > (adc_min+2)){
 				adc_min = one_loop_min;
@@ -170,7 +173,7 @@ static char *channel_ip;
 static char *channel_payload_relative_uri;
 static char *adc_channel_api_key;
 
-
+static uint64 lastNonZeroTime;
 
 static void ICACHE_FLASH_ATTR t120secTimerCb(void *arg) {
 	//send data to cloud https://api.thingspeak.com/update?key=IBN5KS0BZJH87MM9&field1=0
@@ -181,10 +184,23 @@ static void ICACHE_FLASH_ATTR t120secTimerCb(void *arg) {
 	//add GET in front of uri, and field2, field3 place holders for min and max values
 	//so that we will have format string like this: "GET /update?key=%s&field1=%d&field2=%d&field3=%d\r\n"
 	char format_str[HTTP_MAX_GET_SIZE];
-	os_sprintf(format_str, "GET %s%s", channel_payload_relative_uri, "&field2=%d&field3=%d\r\n");
-os_printf("format_str=%s\n", format_str);
-	thing_vsprintf(payload, HTTP_MAX_GET_SIZE-1, format_str, adc_channel_api_key, pulse_count, getAdcMin(), getAdcMax());
-os_printf("payload=%s\n", payload);
+	if (pulse_count>0){
+		lastNonZeroTime = getThingTime();
+	}
+
+	if ((pulse_count == 0) && ((getThingTime() - lastNonZeroTime)>60*15)){
+		//if pulses did not occurred for a long time, reinit light_pulse detection, and send information about event to channel (field5)
+		os_sprintf(format_str, "GET %s%s", channel_payload_relative_uri, "&field2=%d&field3=%d&field4=%d&field5=%d\r\n");
+		os_printf("format_str=%s\n", format_str);
+		thing_vsprintf(payload, HTTP_MAX_GET_SIZE-1, format_str, adc_channel_api_key, pulse_count, getAdcMin(), getAdcMax(), getThingTime(), getThingTime());
+		os_printf("payload=%s\n", payload);
+		lpInit(getConfig());
+	}else{
+		os_sprintf(format_str, "GET %s%s", channel_payload_relative_uri, "&field2=%d&field3=%d&field4=%d\r\n");
+		os_printf("format_str=%s\n", format_str);
+		thing_vsprintf(payload, HTTP_MAX_GET_SIZE-1, format_str, adc_channel_api_key, pulse_count, getAdcMin(), getAdcMax(), getThingTime());
+		os_printf("payload=%s\n", payload);
+	}
 	//TODO configuration parameter for port
 	http_get(channel_ip, 80, payload);
 }
@@ -199,6 +215,7 @@ void lpInit(DeviceConfig *config){
 	one_loop_max = 0;
 	one_loop_min = 255;
 	state = STATE_INITIAL;
+	lastNonZeroTime = getThingTime();
 
 	//All timers must be disarmed in the beginning. Because we can apply configuration changes without resetting the thing
 	os_timer_disarm(&t120secTimer);
@@ -238,7 +255,7 @@ void lpInit(DeviceConfig *config){
 
 		if (adc2serial_output_enabled || spin_detection_enabled || (config->ADCModeFlags & CFG_ADC_DECODER_OUT_ON)){
 			os_timer_setfn(&lpTimer, lpTimerCb, NULL);
-			os_timer_arm(&lpTimer, LP_TIMER_PERIOD, 20);
+			os_timer_arm(&lpTimer, LP_TIMER_PERIOD, 1);
 		}
 
 	}

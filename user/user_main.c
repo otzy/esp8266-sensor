@@ -1,5 +1,3 @@
-
-
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -59,16 +57,15 @@ HttpdBuiltInUrl builtInUrls[]={
 };
 
 static ETSTimer t1secTimer;
-static uint64 time = 0;
+static uint32 thing_time = 0;
 static void t1secTimerCb(void *arg) {
-	time++;
+	thing_time++;
+	ledSingleFlash(30);
 }
 
-uint64 getThingTime(){
-	return time;
+uint32 getThingTime(){
+	return thing_time;
 }
-
-static ETSTimer initTimer;
 
 void ICACHE_FLASH_ATTR initCb(void *arg) {
 	os_printf("user_init start\n");
@@ -80,9 +77,13 @@ void ICACHE_FLASH_ATTR initCb(void *arg) {
 	os_printf("ioInit done\n");
 
 	os_printf("\nReady\n");
-	led2OnOff(1);
 }
 
+static ETSTimer onceTimer;
+
+ETSTimer *getOnceTimer(){
+	return &onceTimer;
+}
 
 void user_init(void) {
 	stdoutInit();
@@ -97,7 +98,7 @@ void user_init(void) {
 	os_printf("httpdInit done\n");
 
 	//do real init in timer callback cause writing to flash leads to fatal error when called from user_init()
-	os_timer_disarm(&initTimer);
-	os_timer_setfn(&initTimer, initCb, NULL);
-	os_timer_arm(&initTimer, 100, 0);
+	os_timer_disarm(&onceTimer);
+	os_timer_setfn(&onceTimer, initCb, NULL);
+	os_timer_arm(&onceTimer, 100, 0);
 }

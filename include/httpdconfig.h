@@ -3,4 +3,4 @@
 #define EFS_HEATSHRINK
 
 //Pos of esp fs in flash
-#define ESPFS_POS 0x12000
+#define ESPFS_POS 0x14000

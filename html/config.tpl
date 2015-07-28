@@ -30,7 +30,7 @@ display: inline-block
 <tr><td><label for="TalkBackHost">IP address of thingspeak.com or other service</label></td><td><input type="text" name="TalkBackHost" id="TalkBackHost" value="%TalkBackHost%" maxlength="63"></td></tr>
 <tr><td><label for="TalkBackPayload">Format string for TackBack Execute command relative URI</label><br><small>Example: /talkbacks/&#37;s/execute?api_key=&#37;s<br>Talkback ID must be the dirst parameter, api key - second one</small></td><td><input type="text" name="TalkBackPayload" id="TalkBackPayload" value="%TalkBackPayload%" maxlength=255 size=80></td></tr>
 <tr><td><label for="TalkBackId">TalkBack_ID</label></td><td><input type="text" name="TalkBackId" id="TalkBackId" value="%TalkBackId%" maxlength="15"></td></tr>
-<tr><td><label for="TalkBackApiKey">Api Key</label></td><td><input type="text" name="TalkBackApiKey" id="TalkBackApiKey" value="%TalkBackApiKey%" maxlength="32"></td></tr>
+<tr><td><label for="TalkBackApiKey">TalkBack Api Key</label></td><td><input type="text" name="TalkBackApiKey" id="TalkBackApiKey" value="%TalkBackApiKey%" maxlength="32"></td></tr>
 <tr><td colspan=2><h3>Password</h3></td></tr>
 <tr><td><label for="password">Password</label></td><td><input type="text" name="password" id="password" value="%password%" maxlength="14"></td></tr>
 <tr><td><label for="newPassword">New password</label></td><td><input type="text" name="newPassword" id="newPassword" value="%password%" maxlength="14"></td></tr>

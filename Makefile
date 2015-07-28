@@ -154,8 +154,8 @@ mkespfsimage/mkespfsimage: mkespfsimage/
 #position of the filesystem in flash is defined in the httpdconfig.h
 #if you want to change it from 0x12000 to something else, don't forget to update constant ESPFS_POS in httpdconfig.h
 htmlflash: webpages.espfs
-	if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2C000 )) ]; then echo "webpages.espfs too big!"; false; fi
-	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x12000 webpages.espfs
+	if [ $$(stat -c '%s' webpages.espfs) -gt $$(( 0x2B000 )) ]; then echo "webpages.espfs too big!"; false; fi
+	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x14000 webpages.espfs
 
 clean:
 	$(Q) rm -f $(APP_AR)

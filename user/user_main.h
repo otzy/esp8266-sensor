@@ -12,6 +12,8 @@ int thing_vsprintf(char *buff, uint16 buff_size, const char *format, ...);
 
 void initCb(void *arg);
 
-uint64 getThingTime();
+uint32 getThingTime();
+
+ETSTimer *getOnceTimer();
 
 #endif /* USER_USER_MAIN_H_ */
