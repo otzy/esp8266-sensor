@@ -201,8 +201,10 @@ static void ICACHE_FLASH_ATTR t120secTimerCb(void *arg) {
 		thing_vsprintf(payload, HTTP_MAX_GET_SIZE-1, format_str, adc_channel_api_key, pulse_count, getAdcMin(), getAdcMax(), getThingTime());
 		os_printf("payload=%s\n", payload);
 	}
+
 	//TODO configuration parameter for port
 	http_get(channel_ip, 80, payload);
+
 }
 /*************************/
 

@@ -201,25 +201,30 @@ int ICACHE_FLASH_ATTR cgiWiFiConnect(HttpdConnData *connData) {
 }
 
 //Template code for the WLAN page.
-void ICACHE_FLASH_ATTR tplWlan(HttpdConnData *connData, char *token, void **arg) {
-	char buff[1024];
+void ICACHE_FLASH_ATTR tplWlan(HttpdConnData *connData, char *token, void **arg, char *buff_to_send, int buff_len) {
 	int x;
 	static struct station_config stconf;
-	if (token==NULL) return;
-	wifi_station_get_config(&stconf);
+	if (token!=NULL){
+		char *buff_offset;
+		buff_offset = buff_to_send + buff_len * sizeof(char);
 
-	os_strcpy(buff, "Unknown");
-	if (os_strcmp(token, "WiFiMode")==0) {
-		x=wifi_get_opmode();
-		if (x==1) os_strcpy(buff, "Client");
-		if (x==2) os_strcpy(buff, "SoftAP");
-		if (x==3) os_strcpy(buff, "STA+AP");
-	} else if (os_strcmp(token, "currSsid")==0) {
-		os_strcpy(buff, (char*)stconf.ssid);
-	} else if (os_strcmp(token, "WiFiPasswd")==0) {
-		os_strcpy(buff, (char*)stconf.password);
+
+		wifi_station_get_config(&stconf);
+
+		os_strcpy(buff_offset, "Unknown");
+		if (os_strcmp(token, "WiFiMode")==0) {
+			x=wifi_get_opmode();
+			if (x==1) os_strcpy(buff_offset, "Client");
+			if (x==2) os_strcpy(buff_offset, "SoftAP");
+			if (x==3) os_strcpy(buff_offset, "STA+AP");
+		} else if (os_strcmp(token, "currSsid")==0) {
+			os_strcpy(buff_offset, (char*)stconf.ssid);
+		} else if (os_strcmp(token, "WiFiPasswd")==0) {
+			os_strcpy(buff_offset, (char*)stconf.password);
+		}
 	}
-	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
+	espconn_sent(connData->conn, (uint8 *)buff_to_send, os_strlen(buff_to_send));
+
 }
 
 

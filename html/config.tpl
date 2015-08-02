@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head><title>Esp8266 web server</title>
-<link rel="stylesheet" type="text/css" href="style.css">
 <style>
 .inline-block{
 display: inline-block

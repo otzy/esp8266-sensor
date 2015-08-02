@@ -20,6 +20,7 @@
 #include "stdout.h"
 #include "config.h"
 
+#include "http.h"
 
 int thing_vsprintf(char *buff, uint16 buff_size, const char *format, ...){
 	int result;
@@ -41,7 +42,6 @@ HttpdBuiltInUrl builtInUrls[]={
 
 	{"/flash.bin", cgiReadFlash, NULL},
 	{"/led.tpl", cgiEspFsTemplate, tplLed},
-	{"/dht22.tpl", cgiEspFsTemplate, tplDHT},
 	{"/index.tpl", cgiEspFsTemplate, tplCounter},
 	{"/led.cgi", cgiLed, NULL},
 
@@ -67,6 +67,24 @@ uint32 getThingTime(){
 	return thing_time;
 }
 
+static ETSTimer onceTimer;
+
+ETSTimer *getOnceTimer(){
+	return &onceTimer;
+}
+
+//void ICACHE_FLASH_ATTR freeDNSCb(void *arg) {
+//
+//	//send one time request to FreeDNS
+//	//FreeDNS stuff
+//	http_get("204.140.20.21", 80, "GET /dynamic/update.php?ZXppcEFaUUJkZ1FpbTVIQlVsUjQ6MTQ3OTAyOTk= HTTP/1.1\r\nHost: freedns.afraid.org\r\n\r\n");
+//
+//	//run 1sec tick
+//	os_timer_disarm(&t1secTimer);
+//	os_timer_setfn(&t1secTimer, t1secTimerCb, NULL);
+//	os_timer_arm(&t1secTimer, 1000, 1);
+//}
+
 void ICACHE_FLASH_ATTR initCb(void *arg) {
 	os_printf("user_init start\n");
 	DeviceConfig *config = getConfig();
@@ -77,12 +95,11 @@ void ICACHE_FLASH_ATTR initCb(void *arg) {
 	os_printf("ioInit done\n");
 
 	os_printf("\nReady\n");
-}
 
-static ETSTimer onceTimer;
+//	os_timer_disarm(getOnceTimer());
+//	os_timer_setfn(getOnceTimer(), freeDNSCb, NULL);
+//	os_timer_arm(getOnceTimer(), 10000, 0);
 
-ETSTimer *getOnceTimer(){
-	return &onceTimer;
 }
 
 void user_init(void) {

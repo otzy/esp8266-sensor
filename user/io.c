@@ -84,7 +84,7 @@ void gpioMode(uint8 gpio_pin, uint8 mode){
 
 static ETSTimer resetBtntimer;
 
-static ETSTimer adcBtnTimer;
+//static ETSTimer adcBtnTimer;
 
 //static ETSTimer t20secTimer;
 
@@ -153,21 +153,21 @@ static void ICACHE_FLASH_ATTR resetBtnTimerCb(void *arg) {
 	}
 }
 
-static void ICACHE_FLASH_ATTR adcBtnTimerCb(void *arg){
-	static int resetCnt=0;
-	if (!GPIO_INPUT_GET(BTN_ADC_OUTPUT)){
-		resetCnt++;
-	} else {
-		if (resetCnt>=2){ //we don't want delay, just filter bounces
-//			uint16 adc = system_adc_read();
-//			os_printf("ADC=%d; RTC=%d, SYS_TIME=%d\n", adc, system_get_time(), system_get_rtc_time());
-
-			toggleADC2SerialOutput();
-
-		}
-		resetCnt = 0;
-	}
-}
+//static void ICACHE_FLASH_ATTR adcBtnTimerCb(void *arg){
+//	static int resetCnt=0;
+//	if (!GPIO_INPUT_GET(BTN_ADC_OUTPUT)){
+//		resetCnt++;
+//	} else {
+//		if (resetCnt>=2){ //we don't want delay, just filter bounces
+////			uint16 adc = system_adc_read();
+////			os_printf("ADC=%d; RTC=%d, SYS_TIME=%d\n", adc, system_get_time(), system_get_rtc_time());
+//
+//			toggleADC2SerialOutput();
+//
+//		}
+//		resetCnt = 0;
+//	}
+//}
 
 
 
@@ -239,9 +239,9 @@ void ioInit(DeviceConfig *config) {
 	os_timer_arm(&resetBtntimer, 500, 1);
 
 	//adcBtnTimer
-	os_timer_disarm(&adcBtnTimer);
-	os_timer_setfn(&adcBtnTimer, adcBtnTimerCb, NULL);
-	os_timer_arm(&adcBtnTimer, 300, 1);
+//	os_timer_disarm(&adcBtnTimer);
+//	os_timer_setfn(&adcBtnTimer, adcBtnTimerCb, NULL);
+//	os_timer_arm(&adcBtnTimer, 300, 1);
 
 	//adcToSerialTimer
 //	os_timer_disarm(&adcToSerialTimer);

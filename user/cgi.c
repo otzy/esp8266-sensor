@@ -50,19 +50,21 @@ int ICACHE_FLASH_ATTR cgiLed(HttpdConnData *connData) {
 
 
 //Template code for the led page.
-void ICACHE_FLASH_ATTR tplLed(HttpdConnData *connData, char *token, void **arg) {
-	char buff[128];
-	if (token==NULL) return;
+void ICACHE_FLASH_ATTR tplLed(HttpdConnData *connData, char *token, void **arg, char *buff_to_send, int buff_len) {
+	if (token!=NULL){
+		char *buff_offset;
+		buff_offset = buff_to_send + buff_len * sizeof(char);
 
-	os_strcpy(buff, "Unknown");
-	if (os_strcmp(token, "ledstate")==0) {
-		if (currLedState) {
-			os_strcpy(buff, "on");
-		} else {
-			os_strcpy(buff, "off");
+		os_strcpy(buff_offset, "Unknown");
+		if (os_strcmp(token, "ledstate")==0) {
+			if (currLedState) {
+				os_strcpy(buff_offset, "on");
+			} else {
+				os_strcpy(buff_offset, "off");
+			}
 		}
 	}
-	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
+	espconn_sent(connData->conn, (uint8 *)buff_to_send, os_strlen(buff_to_send));
 }
 
 static long hitCounter=0;
@@ -77,64 +79,66 @@ void ICACHE_FLASH_ATTR ADCModeCheckboxSetState(char * buff, DeviceConfig *config
 }
 
 //Template code for configuration page
-void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **arg){
+void ICACHE_FLASH_ATTR tplConfig(HttpdConnData *connData, char *token, void **arg, char *buff_to_send, int buff_len){
 	char buff[256];
 
-	if (token == NULL){
-		return;
-	}
+	if (token != NULL){
 
-	DeviceConfig *config = getConfig();
+		DeviceConfig *config = getConfig();
 
-	//TODO wrap to function
-	//something is wrong here
-	if (httpdFindArg(connData->getArgs, "password", buff, sizeof(buff)) >= 0){
-		if (os_strcmp(buff, config->password) != 0){
+		//TODO wrap to function
+		//something is wrong here
+		if (httpdFindArg(connData->getArgs, "password", buff, sizeof(buff)) >= 0){
+			if (os_strcmp(buff, config->password) != 0){
+				httpdRedirectWithDelay(connData, "pass_error.html");
+				return;
+			}
+		}else{
 			httpdRedirectWithDelay(connData, "pass_error.html");
 			return;
 		}
-	}else{
-		httpdRedirectWithDelay(connData, "pass_error.html");
-		return;
+
+		char *buff_offset;
+		buff_offset = buff_to_send + buff_len * sizeof(char);
+
+		if (os_strcmp(token, "ADCOn") == 0){
+			ADCModeCheckboxSetState(buff_offset, config, CFG_ADC_ON);
+		}else if (os_strcmp(token, "ADCSerialOutputOn") == 0){
+			ADCModeCheckboxSetState(buff_offset, config, CFG_ADC_SERIAL_OUT_ON);
+		}else if (os_strcmp(token, "ADCDecoderOutputOn") == 0){
+			ADCModeCheckboxSetState(buff_offset, config, CFG_ADC_DECODER_OUT_ON);
+		}else if (os_strcmp(token, "ADCSpinDetectionOn") == 0){
+			ADCModeCheckboxSetState(buff_offset, config, CFG_ADC_SPIN_DETECTION_ON);
+		}else if (os_strcmp(token, "ADCChannelHost") == 0){
+			os_strcpy(buff_offset, config->ADCChannelHost);
+		}else if (os_strcmp(token, "ADCChannelPayload") == 0){
+			os_strcpy(buff_offset, config->ADCChannelPayload);
+		}else if (os_strcmp(token, "ADCChannelAPIKey") == 0){
+			os_strcpy(buff_offset, config->ADCChannelAPIKey);
+		}else if (os_strcmp(token, "DecoderOutputBit0") == 0){
+			os_sprintf(buff_offset, "%d", config->DecoderOutputBit0);
+		}else if (os_strcmp(token, "DecoderOutputBit1") == 0){
+			os_sprintf(buff_offset, "%d", config->DecoderOutputBit1);
+		}else if (os_strcmp(token, "DecoderOutputBit2") == 0){
+			os_sprintf(buff_offset, "%d", config->DecoderOutputBit2);
+		}
+		//TalkBack TalkBackOn
+		else if (os_strcmp(token, "TalkBackOn") == 0){
+			ADCModeCheckboxSetState(buff_offset, config, CFG_TALKBACK_ON);
+		}else if (os_strcmp(token, "TalkBackHost") == 0){
+			os_strcpy(buff_offset, config->TalkBackHost);
+		}else if (os_strcmp(token, "TalkBackPayload") == 0){
+			os_strcpy(buff_offset, config->TalkBackPayload);
+		}else if (os_strcmp(token, "TalkBackId") == 0){
+			os_strcpy(buff_offset, config->TalkBackID);
+		}else if (os_strcmp(token, "TalkBackApiKey") == 0){
+			os_strcpy(buff_offset, config->TalkBackApiKey);
+		}else if (os_strcmp(token, "password") == 0){
+			os_strcpy(buff_offset, config->password);
+		}
 	}
 
-	if (os_strcmp(token, "ADCOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_ADC_ON);
-	}else if (os_strcmp(token, "ADCSerialOutputOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_ADC_SERIAL_OUT_ON);
-	}else if (os_strcmp(token, "ADCDecoderOutputOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_ADC_DECODER_OUT_ON);
-	}else if (os_strcmp(token, "ADCSpinDetectionOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_ADC_SPIN_DETECTION_ON);
-	}else if (os_strcmp(token, "ADCChannelHost") == 0){
-		os_strcpy(buff, config->ADCChannelHost);
-	}else if (os_strcmp(token, "ADCChannelPayload") == 0){
-		os_strcpy(buff, config->ADCChannelPayload);
-	}else if (os_strcmp(token, "ADCChannelAPIKey") == 0){
-		os_strcpy(buff, config->ADCChannelAPIKey);
-	}else if (os_strcmp(token, "DecoderOutputBit0") == 0){
-		os_sprintf(buff, "%d", config->DecoderOutputBit0);
-	}else if (os_strcmp(token, "DecoderOutputBit1") == 0){
-		os_sprintf(buff, "%d", config->DecoderOutputBit1);
-	}else if (os_strcmp(token, "DecoderOutputBit2") == 0){
-		os_sprintf(buff, "%d", config->DecoderOutputBit2);
-	}
-	//TalkBack TalkBackOn
-	else if (os_strcmp(token, "TalkBackOn") == 0){
-		ADCModeCheckboxSetState(buff, config, CFG_TALKBACK_ON);
-	}else if (os_strcmp(token, "TalkBackHost") == 0){
-		os_strcpy(buff, config->TalkBackHost);
-	}else if (os_strcmp(token, "TalkBackPayload") == 0){
-		os_strcpy(buff, config->TalkBackPayload);
-	}else if (os_strcmp(token, "TalkBackId") == 0){
-		os_strcpy(buff, config->TalkBackID);
-	}else if (os_strcmp(token, "TalkBackApiKey") == 0){
-		os_strcpy(buff, config->TalkBackApiKey);
-	}else if (os_strcmp(token, "password") == 0){
-		os_strcpy(buff, config->password);
-	}
-
-	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
+	espconn_sent(connData->conn, (uint8 *)buff_to_send, os_strlen(buff_to_send));
 }
 
 //Cgi that saves configuration
@@ -255,15 +259,18 @@ int ICACHE_FLASH_ATTR cgiConfig(HttpdConnData *connData) {
 }
 
 //Template code for the counter on the index page.
-void ICACHE_FLASH_ATTR tplCounter(HttpdConnData *connData, char *token, void **arg) {
-	char buff[128];
-	if (token==NULL) return;
+void ICACHE_FLASH_ATTR tplCounter(HttpdConnData *connData, char *token, void **arg, char *buff_to_send, int buff_len) {
 
-	if (os_strcmp(token, "counter")==0) {
-		hitCounter++;
-		os_sprintf(buff, "%ld", hitCounter);
+	if (token!=NULL){
+		char *buff_offset;
+		buff_offset = buff_to_send + buff_len * sizeof(char);
+
+		if (os_strcmp(token, "counter")==0) {
+			hitCounter++;
+			os_sprintf(buff_offset, "%ld", hitCounter);
+		}
 	}
-	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
+	espconn_sent(connData->conn, (uint8 *)buff_to_send, os_strlen(buff_to_send));
 }
 
 
@@ -288,22 +295,3 @@ int ICACHE_FLASH_ATTR cgiReadFlash(HttpdConnData *connData) {
 	if (*pos>=0x40200000+(512*1024)) return HTTPD_CGI_DONE; else return HTTPD_CGI_MORE;
 }
 
-//Template code for the DHT 22 page.
-void ICACHE_FLASH_ATTR tplDHT(HttpdConnData *connData, char *token, void **arg) {
-	char buff[128];
-	if (token==NULL) return;
-
-	float * r = readDHT();
-	float lastTemp=r[0];
-	float lastHum=r[1];
-	
-	os_strcpy(buff, "Unknown");
-	if (os_strcmp(token, "temperature")==0) {
-			os_sprintf(buff, "%d.%d", (int)(lastTemp),(int)((lastTemp - (int)lastTemp)*100) );		
-	}
-	if (os_strcmp(token, "humidity")==0) {
-			os_sprintf(buff, "%d.%d", (int)(lastHum),(int)((lastHum - (int)lastHum)*100) );		
-	}	
-	
-	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
-}
