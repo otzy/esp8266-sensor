@@ -146,7 +146,7 @@ flash: firmware/0x00000.bin firmware/0x40000.bin
 	
 #call make webpages.espfs for rebuilding filesystem image. If it says "webpage.espfs is up to date", delete old file 
 webpages.espfs: html/ mkespfsimage/mkespfsimage
-	cd html; find | ../mkespfsimage/mkespfsimage  > ../webpages.espfs; cd ..
+	cd html; find | ../mkespfsimage/mkespfsimage -c 0  > ../webpages.espfs; cd ..
 
 mkespfsimage/mkespfsimage: mkespfsimage/
 	make -C mkespfsimage
