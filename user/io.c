@@ -200,7 +200,9 @@ void decoderSet(uint8 value){
 void ioInit(DeviceConfig *config) {
 	os_printf("ioInit start\n");
 
-	decoderInit(config->DecoderOutputBit0, config->DecoderOutputBit1, config->DecoderOutputBit2);
+	if (config->ADCModeFlags & CFG_ADC_DECODER_OUT_ON){
+		decoderInit(config->DecoderOutputBit0, config->DecoderOutputBit1, config->DecoderOutputBit2);
+	}
 	
 	//define custom adc_read function.
 	//if we don't need to do anything special, use system_adc_read from SDK.
