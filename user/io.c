@@ -95,13 +95,15 @@ void decoderSet(uint8 value);
 static uint16 custom_adc_read(void){
 	uint16 result = system_adc_read();
 
-	//do output to decoder
-	//we need only 3 most significant bits
-	//ESP8266 ADC max value is 1024, which give us 11th bit on max value. We ignore this case
-	if (result == 1024){
-		decoderSet(7);
-	}else{
-		decoderSet(result>>7);
+	if (getConfig()->ADCModeFlags & CFG_ADC_DECODER_OUT_ON){
+		//do output to decoder
+		//we need only 3 most significant bits
+		//ESP8266 ADC max value is 1024, which give us 11th bit on max value. We ignore this case
+		if (result == 1024){
+			decoderSet(7);
+		}else{
+			decoderSet(result>>7);
+		}
 	}
 
 	return result;
@@ -202,12 +204,12 @@ void ioInit(DeviceConfig *config) {
 
 	if (config->ADCModeFlags & CFG_ADC_DECODER_OUT_ON){
 		decoderInit(config->DecoderOutputBit0, config->DecoderOutputBit1, config->DecoderOutputBit2);
+		decoderSet(0);
 	}
 	
 	//define custom adc_read function.
 	//if we don't need to do anything special, use system_adc_read from SDK.
 	if (config->ADCModeFlags & (CFG_ADC_ON | CFG_ADC_DECODER_OUT_ON)){
-		decoderSet(0);
 		thing_adc_read = custom_adc_read;
 	}else{
 		thing_adc_read = system_adc_read;
