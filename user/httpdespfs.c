@@ -66,10 +66,12 @@ int ICACHE_FLASH_ATTR cgiEspFsHook(HttpdConnData *connData) {
 
 //cgiEspFsTemplate can be used as a template.
 
+#define TOKEN_SIZE 64
+
 typedef struct {
 	EspFsFile *file;
 	void *tplArg;
-	char token[64];
+	char token[TOKEN_SIZE];
 	int tokenPos;
 
 	char *buffToSend;
@@ -174,7 +176,6 @@ int ICACHE_FLASH_ATTR cgiEspFsTemplate(HttpdConnData *connData) {
 		tpd=(TplData *)os_malloc(sizeof(TplData));
 		tpd->file=espFsOpen(connData->url);
 		tpd->tplArg=NULL;
-		tpd->tokenPos=-1;
 		if (tpd->file==NULL) {
 			return HTTPD_CGI_NOTFOUND;
 		}
@@ -185,34 +186,45 @@ int ICACHE_FLASH_ATTR cgiEspFsTemplate(HttpdConnData *connData) {
 		return HTTPD_CGI_MORE;
 	}
 
+	//Reset our buffers
+	for (x=0; x<1024; x++){
+		buff[x] = 0;
+	}
+	for (x=0; x<TOKEN_SIZE; x++){
+		tpd->token[x] = 0;
+	}
+	tpd->tokenPos = -1;
+	///////////////////
+
 	len=espFsRead(tpd->file, &one_char, 1);
 	for (x = 0; (len>0) && (x<511); x++) {
-		buff[x] = one_char;
 
 		if (tpd->tokenPos==-1) {
 			//Inside ordinary text.
 			if (one_char=='%') {
-				buff[x] = 0; //zero-terminate buffer
+//				buff[x] = 0; //zero-terminate buffer
 				//Go collect token chars.
 				tpd->tokenPos=0;
 			} else {
 				buff[x] = one_char;
 			}
 		} else {
-			if (buff[x]=='%') {
-				tpd->token[tpd->tokenPos++]=0; //zero-terminate token
+			if (one_char=='%') {
+//				tpd->token[tpd->tokenPos++]=0; //zero-terminate token
 				((TplCallback)(connData->cgiArg))(connData, tpd->token, &tpd->tplArg, buff, os_strlen(buff));
 				return HTTPD_CGI_MORE;
 
 			} else {
-				if (tpd->tokenPos<(sizeof(tpd->token)-1)) tpd->token[tpd->tokenPos++]=one_char;
+				if (tpd->tokenPos<(TOKEN_SIZE-1)) tpd->token[tpd->tokenPos++]=one_char;
 			}
 		}
 
 		len=espFsRead(tpd->file, &one_char, 1);
 	}
 	//We get here only if token was not met. Send the data from buffer
-	buff[x+1] = 0;
+	if(len == 1){
+		buff[x] = one_char;
+	}
 	espconn_sent(connData->conn, (uint8 *)buff, os_strlen(buff));
 	if (len == 0) {
 		//We're done.

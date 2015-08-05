@@ -10,7 +10,7 @@
 
 #include "config.h"
 
-#define LP_TIMER_PERIOD 15 //how often we are sampling ADC
+#define LP_TIMER_PERIOD 10 //how often we are sampling ADC
 
 
 void lpInit(DeviceConfig *config);
